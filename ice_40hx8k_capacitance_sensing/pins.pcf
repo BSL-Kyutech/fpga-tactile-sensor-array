@@ -1,0 +1,12 @@
+# Physical pin constraints for iCE40HX8K-CT256
+set_io clk J3
+# 8 onboard LEDs (active high)
+set_io leds[0] T1
+set_io leds[1] B5
+# UART transmit to PC (connect to USB-Serial adapter RX)
+set_io uart_tx B12
+
+# Capacitive touch sensor pins - assign 50 available balls from the datasheet/user guide
+# Example assignments (replace with actual available pins from iCE40HX8K-CT256 pinout):
+set_io sense_pins[0] R1
+set_io sense_pins[1] P2
