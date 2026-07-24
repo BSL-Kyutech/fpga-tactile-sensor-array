@@ -1,0 +1,5 @@
+Partlist exported from Fusion Hub: Mohsin   Project: Default Project  Board: FLEXIABLEPCB_0101DESIGN at 08/07/2026 6:06 pm
+
+Qty Value             Device            Package  Parts    Description CATEGORY_L1 CATEGORY_L2 DATASHEET MANUFACTURER MPN PACKAGE VALUE VENDOR VPN
+2   FLEX_0101FLEX0101 FLEX_0101FLEX0101 FLEX0101 U$1, U$3                                                                                        
+1   FPC0101           FPC0101           FPC0101  U$2                                                                                             

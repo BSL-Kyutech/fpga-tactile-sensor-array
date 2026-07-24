@@ -1,0 +1,24 @@
+{
+    "Header": {
+        "Comment": "All values are metric (mm)",
+        "CreationDate": "2026-07-08T09:06:05Z",
+        "GenerationSoftware": {
+            "Application": "Fusion Electronics",
+            "Vendor": "Autodesk",
+            "Version": "9.7.0"
+        },
+        "Part": "Single"
+    },
+    "Overall": {
+        "BoardThickness": 1.6608,
+        "LayerNumber": 2,
+        "Name": {
+            "ProjectId": "Untitled"
+        },
+        "Owner": "Mohsin Ali <ali-mohsin439@mail.kyutech.jp>",
+        "Size": {
+            "X": 83.004078,
+            "Y": 97.561831
+        }
+    }
+}
