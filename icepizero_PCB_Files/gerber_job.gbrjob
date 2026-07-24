@@ -1,7 +1,7 @@
 {
     "Header": {
         "Comment": "All values are metric (mm)",
-        "CreationDate": "2026-07-08T09:06:05Z",
+        "CreationDate": "2026-06-29T01:25:21Z",
         "GenerationSoftware": {
             "Application": "Fusion Electronics",
             "Vendor": "Autodesk",
@@ -13,12 +13,12 @@
         "BoardThickness": 1.6608,
         "LayerNumber": 2,
         "Name": {
-            "ProjectId": "Untitled"
+            "ProjectId": "icepizero_version2"
         },
         "Owner": "Mohsin Ali <ali-mohsin439@mail.kyutech.jp>",
         "Size": {
-            "X": 83.004078,
-            "Y": 97.561831
+            "X": 65,
+            "Y": 30
         }
     }
 }

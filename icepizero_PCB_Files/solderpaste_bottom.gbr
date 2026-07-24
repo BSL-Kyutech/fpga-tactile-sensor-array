@@ -3,13 +3,10 @@ G75*
 %MOMM*%
 %FSLAX34Y34*%
 %LPD*%
-%INSilkscreen Bottom*%
+%INSolderpaste Bottom*%
 %IPPOS*%
 %AMOC8*
 5,1,8,0,0,1.08239X$1,22.5*%
 G01*
 G04 Define Apertures*
-%ADD10R,14.130000X4.620000*%
-D10*
-X483550Y937700D03*
 M02*
