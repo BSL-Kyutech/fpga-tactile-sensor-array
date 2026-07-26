@@ -103,5 +103,76 @@ cap_test4/
 
 
 # 🔧 Part 2: iCEPI-ZERO Setup Guide
+# 🔧 Part 2: iCEPizero + ROS2 Setup Guide
+
+This section covers the **iCEPizero (RP2040)** based capacitive sensing system with **20 sensing points**, connected to a **Raspberry Pi Zero 2 W** for ROS2 network publishing.
+
+---
+
+## 1. What You Need (Bill of Materials)
+
+| Item | Qty | Description | Link / Source |
+|------|-----|-------------|---------------|
+| **iCEPizero** | 1 | RP2040-based development board | — |
+| **Raspberry Pi Zero 2 W** | 1 | For ROS2 network bridge | — |
+| **Main Shield PCB** | 1 | Custom PCB for iCEPizero (see `icepizero_PCB_Files/`) | Fabricate from gerbers |
+| **JST Connector (Board)** | 1 | 20-pin, 1.0 mm pitch, SMD right-angle | [JST SM20B-SRSS-TB (DigiKey)](https://www.digikey.jp/ja/products/detail/jst-sales-america-inc/SM20B-SRSS-TB/926722) |
+| **JST Connector (Cable)** | 1 | 20-pin housing for SH series | [JST SHR-20V-S-B (DigiKey)](https://www.digikey.jp/ja/products/detail/jst-sales-america-inc/SHR-20V-S-B/759880) |
+| **Resistors** | 20 | 0402 SMD, 10 MΩ | [YAGEO RC0402JR-1010ML (Mouser)](https://www.mouser.jp/ja/ProductDetail/YAGEO/RC0402JR-1010ML?qs=qpJ%252B%252B%252Bdg6p0Cmvh%2FWhcluQ%3D%3D) |
+| **Flexible Sensor Sheet** | 1 | 20-point capacitive sensor array | Fabricate from gerbers (included) |
+
+---
+
+## 2. PCB Overview
+
+The iCEPizero system uses a **custom shield PCB** that mounts on the iCEPizero board.
+
+**Key features:**
+- 20x 0402 SMD resistors (10 MΩ) forming RC charge/discharge circuits
+- 1x 20-pin JST SH connector for the sensor array
+- 2-layer or 4-layer design (see `icepizero_PCB_Files/`)
+- UART/SPI/I2C breakout to Raspberry Pi Zero 2 W
+
+---
+
+## 3. Step-by-Step Assembly
+
+### Step 1: Solder the Resistors
+Solder **20 resistors** onto the shield PCB.
+
+| Parameter | Value |
+|-----------|-------|
+| Package | 0402 |
+| Resistance | 10 MΩ |
+| Placement | R1 – R20 (see silkscreen) |
+
+> **Tip:** Use tweezers and a fine-tip soldering iron. Check for solder bridges with a magnifying glass.
+
+### Step 2: Solder the JST Connector
+Solder the **JST SM20B-SRSS-TB** 20-pin connector onto the PCB.
+
+- **Orientation:** Match the polarity notch to the silkscreen outline
+- **Type:** Right-angle SMD
+- **Pitch:** 1.0 mm
+
+### Step 3: Connect the Sensor Sheet
+1. Crimp the **JST SHR-20V-S-B** housing onto the flexible sensor cable (or use pre-crimped cable)
+2. Plug the connector into the **SM20B-SRSS-TB** on the shield
+3. Ensure the latch clicks into place
+
+### Step 4: Connect to Raspberry Pi Zero 2 W
+Wire the iCEPizero shield to the Raspberry Pi Zero 2 W:
+
+| iCEPizero | Pi Zero 2 W | Function |
+|-----------|-------------|----------|
+| UART0_TX (Pin 1) | UART0_RX (Pin 10 / GPIO 15) | Sensor data to Pi |
+| UART0_RX (Pin 2) | UART0_TX (Pin 8 / GPIO 14) | Pi commands to iCEPizero |
+| GND | GND (Pin 6) | Common ground |
+| 3.3V | 3.3V (Pin 1) | Power (if needed) |
+
+> **Note:** The iCEPizero can also be powered via USB while the Pi runs independently.
+
+---
+
 <img width="1029" height="577" alt="image" src="https://github.com/user-attachments/assets/3ae6fba2-4005-4224-9913-a14690fbd4a8" />
 
