@@ -100,3 +100,8 @@ cap_test4/
 3. make flash
 
 ### Visuliztion 
+
+
+# 🔧 Part 2: iCEPI-ZERO Setup Guide
+<img width="1029" height="577" alt="image" src="https://github.com/user-attachments/assets/3ae6fba2-4005-4224-9913-a14690fbd4a8" />
+
