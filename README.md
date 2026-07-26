@@ -87,3 +87,17 @@ Install the open-source FPGA toolchain:
 - [IceStorm](https://github.com/YosysHQ/icestorm) — bitstream tools
 
 ### Project Structure
+cap_test4/
+├── src/
+     ├── top.v                 # Top-level module
+     ├── cap_sensor.v         
+     ├── pins.pcf       
+     ├── Makefile    
+     └── uart_tx.v             # UART output (2 Mbaud)
+
+### Build the Bitstream
+cd cd cap_test4
+make clean
+make flash
+
+### Build the Bitstream
