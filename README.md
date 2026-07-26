@@ -58,7 +58,8 @@ Solder the two **50-pin FPC connectors** onto the shield PCB.
 - **Alignment:** Match the notch on the connector to the silkscreen outline
 
 <p align="center">
-  <img src="PCB_ICE40HX8K/images/fpc_connector.png" alt="FPC Connector Placement" width="400"/>
+  <img width="640" height="640" alt="image" src="https://github.com/user-attachments/assets/93399ff6-0ff3-42b2-a0dc-0228e85a1ea9" />
+
 </p>
 
 ### Step 3: Inspect Your Work
