@@ -1,9 +1,15 @@
+import threading
 import board
 import busio
 import digitalio
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import numpy as np
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+from std_msgs.msg import Float32MultiArray, UInt8MultiArray, MultiArrayDimension, MultiArrayLayout
 
 # ─── SPI Setup ────────────────────────────────────────────────────────────────
 cs = digitalio.DigitalInOut(board.CE0)
@@ -16,33 +22,19 @@ while not spi.try_lock():
 spi.configure(baudrate=3_000_000, phase=0, polarity=0)
 
 # ─── Packet Definition ────────────────────────────────────────────────────────
-# 62 bytes:
-#   [0]       = 0xAB  sync
-#   [3*i+1]   = touch_detected[i]   i = 0..19
-#   [3*i+2]   = value[i] high byte
-#   [3*i+3]   = value[i] low byte
-#   [61]      = 0xFF  end marker
-
-PKT_LEN    = 62
-SYNC_BYTE  = 0xAB
-END_BYTE   = 0xFF
+PKT_LEN     = 62
+SYNC_BYTE   = 0xAB
+END_BYTE    = 0xFF
 NUM_SENSORS = 20
 
-# ─── Packet Reader ────────────────────────────────────────────────────────────
 def read_packet():
-    """
-    Returns (values, detected) tuple:
-      values   — list of 20 ints (raw capacitance count)
-      detected — list of 20 bools
-    Returns None if packet is malformed.
-    """
     buf = bytearray(PKT_LEN)
     cs.value = False
     spi.readinto(buf)
     cs.value = True
 
     if buf[0] != SYNC_BYTE or buf[PKT_LEN - 1] != END_BYTE:
-        return None  # drop corrupt packet
+        return None
 
     values   = []
     detected = []
@@ -50,20 +42,71 @@ def read_packet():
         det  = bool(buf[3 * i + 1] & 0x01)
         high = buf[3 * i + 2]
         low  = buf[3 * i + 3]
-        val  = (high << 8) | low
+        values.append((high << 8) | low)
         detected.append(det)
-        values.append(val)
 
     return values, detected
 
+# ─── ROS2 Node ────────────────────────────────────────────────────────────────
+class TouchPublisher(Node):
+    def __init__(self):
+        super().__init__("icepi_touch")
+
+        # Best-effort, keep-last-1: suits high-rate sensor data.
+        # Subscribers that need reliability should use a compatible QoS.
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1,
+            durability=DurabilityPolicy.VOLATILE,
+        )
+
+        self.pub_values = self.create_publisher(
+            Float32MultiArray,
+            "/icepi/touch/values",
+            qos,
+        )
+        self.pub_detected = self.create_publisher(
+            UInt8MultiArray,
+            "/icepi/touch/detected",
+            qos,
+        )
+
+        # Pre-build message skeletons once — avoids allocation every frame
+        dim = MultiArrayDimension(label="sensor", size=NUM_SENSORS, stride=NUM_SENSORS)
+        layout = MultiArrayLayout(dim=[dim], data_offset=0)
+
+        self._val_msg = Float32MultiArray(layout=layout, data=[0.0] * NUM_SENSORS)
+        self._det_msg = UInt8MultiArray(layout=layout, data=[0]   * NUM_SENSORS)
+
+        self.get_logger().info("TouchPublisher ready")
+
+    def publish(self, values, detected):
+        self._val_msg.data = [float(v) for v in values]
+        self._det_msg.data = [int(d)   for d in detected]
+        self.pub_values.publish(self._val_msg)
+        self.pub_detected.publish(self._det_msg)
+
+
+def ros_spin(node):
+    """Runs in a daemon thread — exits automatically when main thread ends."""
+    rclpy.spin(node)
+
+
+# ─── ROS2 Init ────────────────────────────────────────────────────────────────
+rclpy.init()
+ros_node = TouchPublisher()
+
+ros_thread = threading.Thread(target=ros_spin, args=(ros_node,), daemon=True)
+ros_thread.start()
+
 # ─── Plot Setup ───────────────────────────────────────────────────────────────
 SENSOR_LABELS = [f"S{i}" for i in range(NUM_SENSORS)]
-MAX_DISPLAY   = 2000   # match MAX_COUNT in your HDL
+MAX_DISPLAY   = 2000
 
 fig, (ax_bar, ax_line) = plt.subplots(2, 1, figsize=(14, 8))
-fig.suptitle("IcePI Zero — 20 Capacitive Touch Sensors", fontsize=13)
+fig.suptitle("IcePI Zero — 20 Touch Sensors", fontsize=13)
 
-# --- Bar chart (current snapshot) ---
 bars = ax_bar.bar(SENSOR_LABELS, [0] * NUM_SENSORS, color="steelblue")
 ax_bar.set_ylim(0, MAX_DISPLAY)
 ax_bar.set_ylabel("Capacitance Count")
@@ -71,7 +114,6 @@ ax_bar.set_title("Live Sensor Values")
 ax_bar.axhline(y=100, color="red", linestyle="--", linewidth=0.8, label="Touch threshold (100)")
 ax_bar.legend(loc="upper right", fontsize=8)
 
-# --- Line chart (rolling history) ---
 HISTORY_LEN = 200
 history = np.zeros((NUM_SENSORS, HISTORY_LEN))
 lines   = [ax_line.plot([], [], linewidth=0.8, label=f"S{i}")[0]
@@ -94,20 +136,22 @@ def update(_frame):
     if result is None:
         bad_packet_count += 1
         fig.suptitle(
-            f"IcePI Zero — 20 Capacitive Touch Sensors  "
-            f"[bad packets: {bad_packet_count}]",
-            fontsize=13
+            f"IcePI Zero — 20 Touch Sensors  [bad packets: {bad_packet_count}]",
+            fontsize=13,
         )
         return bars.patches + lines
 
     values, detected = result
 
-    # Update bar chart
-    for i, (bar, val, det) in enumerate(zip(bars, values, detected)):
+    # ── Publish to ROS2 ───────────────────────────────────────────────
+    ros_node.publish(values, detected)
+
+    # ── Update bar chart ──────────────────────────────────────────────
+    for bar, val, det in zip(bars, values, detected):
         bar.set_height(val)
         bar.set_color("tomato" if det else "steelblue")
 
-    # Update rolling history
+    # ── Update rolling history ────────────────────────────────────────
     history = np.roll(history, -1, axis=1)
     for i, val in enumerate(values):
         history[i, -1] = val
@@ -122,13 +166,17 @@ def update(_frame):
 ani = animation.FuncAnimation(
     fig,
     update,
-    interval=50,      # ms between frames — increase if SPI is too slow
+    interval=50,
     blit=True,
-    cache_frame_data=False
+    cache_frame_data=False,
 )
 
 plt.tight_layout()
-plt.show()
 
-# Cleanup
-spi.unlock()
+try:
+    plt.show()
+finally:
+    # Clean shutdown — order matters
+    spi.unlock()
+    ros_node.destroy_node()
+    rclpy.shutdown()
