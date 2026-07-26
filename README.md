@@ -96,8 +96,8 @@ cap_test4/
      └── uart_tx.v             # UART output (2 Mbaud)
 
 ### Build the Bitstream
-cd cd cap_test4
-make clean
-make flash
+1. cd cap_test4
+2. make clean
+3. make flash
 
-### Build the Bitstream
+### Visuliztion 
