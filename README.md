@@ -16,7 +16,6 @@ This section covers everything needed to build and run the tactile sensor system
 | **Main Shield PCB** | 1 | Custom 4-layer PCB (see `PCB_ICE40HX8K/`) | Fabricate from gerbers |
 | **FPC Connector** | 2 | 50-pin, 0.5 mm pitch, bottom contact | [Würth 687150149022 (DigiKey)](https://www.digikey.jp/ja/products/detail/w%C3%BCrth-elektronik/687150149022/5047807) |
 | **Resistors** | 100 | 0402 SMD, 10 MΩ | [YAGEO RC0402JR-1010ML (Mouser)](https://www.mouser.jp/ja/ProductDetail/YAGEO/RC0402JR-1010ML?qs=qpJ%252B%252B%252Bdg6p0Cmvh%2FWhcluQ%3D%3D) |
-| **FPC Sensor Sheet** | 1 | 100-point flexible capacitive sensor array | Fabricate from gerbers (included) |
 | **Jumper Wires** | — | For UART and power (if needed) | — |
 
 ---
