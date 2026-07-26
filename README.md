@@ -26,11 +26,11 @@ This section covers everything needed to build and run the tactile sensor system
 
 The iCE40HX8K system consists of two PCBs:
 
-### A. Main Shield PCB (`PCB_ICE40HX8K/`)
+ Main Shield PCB (`PCB_ICE40HX8K/`)
 This board mounts directly on top of the iCE40HX8K breakout board. It contains the RC charge/discharge circuits and FPC connectors for the sensor sheet.
 
 <p align="center">
-  <img src="PCB_ICE40HX8K/images/shield_pcb_top.png" alt="iCE40HX8K Shield PCB" width="500"/>
+  <img width="739" height="652" alt="image" src="https://github.com/user-attachments/assets/bb89477d-a7b1-4b99-b3d5-1fe461921570" />
 </p>
 
 **Key features:**
@@ -38,14 +38,6 @@ This board mounts directly on top of the iCE40HX8K breakout board. It contains t
 - 2x 50-pin FPC connectors for the sensor array
 - 4-layer design for signal integrity and low crosstalk
 - Mounting holes aligned to the iCE40HX8K breakout board
-
-### B. Flexible Sensor Sheet
-The 100-point capacitive touch array. Each pad is 10 mm × 10 mm.
-
-<p align="center">
-  <img src="PCB_ICE40HX8K/images/sensor_array.png" alt="100-Point Sensor Array" width="400"/>
-</p>
-
 ---
 
 ## 3. Step-by-Step Assembly
@@ -81,14 +73,8 @@ Align the shield PCB with the iCE40HX8K breakout board headers and press firmly 
 
 ---
 
-## 4. Connecting the Sensor Sheet
-
-1. Take the **flexible sensor sheet** (FPC).
-2. Insert the tail into **FPC Connector 1** on the shield.
-3. Flip down the retention latch to lock the cable.
-4. If your design uses a second sensor segment, connect it to **FPC Connector 2**.
-
-> **Important:** The sensor sheet is delicate. Do not bend the FPC tail more than 90 degrees.
+## 4. Connecting the Sensor
+Connect the sensors
 
 ---
 
