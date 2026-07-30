@@ -1,6 +1,6 @@
 # FPGA Tactile Sensor Array
 A capacitive tactile sensor array with FPGA-based sensing.
-<img width="1148" height="616" alt="image" src="https://github.com/user-attachments/assets/6fac019d-0a08-428a-be55-ee74707bc94b" />
+
 
 ---
 
@@ -103,5 +103,42 @@ cap_test4/
 
 
 # 🔧 Part 2: iCEPI-ZERO Setup Guide
+
+
+This section covers the **iCEPizero (RP2040)** based capacitive sensing system with **20 sensing points**, connected to a **Raspberry Pi Zero 2 W** for ROS2 network publishing.
+
+---
+
+## 1. What You Need (Bill of Materials)
+
+| Item | Qty | Description | Link / Source |
+|------|-----|-------------|---------------|
+| **iCEPizero** | 1 | RP2040-based development board | — |
+| **Raspberry Pi Zero 2 W** | 1 | For ROS2 network bridge | — |
+| **Main Shield PCB** | 1 | Custom PCB for iCEPizero (see `icepizero_PCB_Files/`) | Fabricate from gerbers |
+| **JST Connector (Board)** | 1 | 20-pin, 1.0 mm pitch, SMD right-angle | [JST SM20B-SRSS-TB (DigiKey)](https://www.digikey.jp/ja/products/detail/jst-sales-america-inc/SM20B-SRSS-TB/926722) |
+| **JST Connector (Cable)** | 1 | 20-pin housing for SH series | [JST SHR-20V-S-B (DigiKey)](https://www.digikey.jp/ja/products/detail/jst-sales-america-inc/SHR-20V-S-B/759880) |
+| **Resistors** | 20 | 0402 SMD, 10 MΩ | [YAGEO RC0402JR-1010ML (Mouser)](https://www.mouser.jp/ja/ProductDetail/YAGEO/RC0402JR-1010ML?qs=qpJ%252B%252B%252Bdg6p0Cmvh%2FWhcluQ%3D%3D) |
+
+---
+
+## 2. PCB Overview
+
+The iCEPizero system uses a **custom shield PCB** that mounts on the iCEPizero board.
+
+**Key features:**
+- 20x 0402 SMD resistors (10 MΩ) forming RC charge/discharge circuits
+- 1x 20-pin JST SH connector for the sensor array
+- 2-layer  (see `icepizero_PCB_Files/`)
+<img width="1148" height="616" alt="image" src="https://github.com/user-attachments/assets/6fac019d-0a08-428a-be55-ee74707bc94b" />
+---
+
+## 3. Step-by-Step Assembly
+
+
 <img width="1029" height="577" alt="image" src="https://github.com/user-attachments/assets/3ae6fba2-4005-4224-9913-a14690fbd4a8" />
 
+##3. Build Firmwork
+ 1. cd icepizero_code
+ 2. make clean
+ 3. make flash
