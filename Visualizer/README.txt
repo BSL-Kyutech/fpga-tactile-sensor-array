@@ -1,6 +1,6 @@
 ##Requirements
 
 
-pip install matplotlib
+pip install matplotlib 
 
 pip install pyserial
