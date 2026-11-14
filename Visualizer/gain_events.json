@@ -1,0 +1,175 @@
+{
+ "events": [
+  {
+   "ch": 17,
+   "plateau": 18.7,
+   "peak": 19.8,
+   "sec": 0.98,
+   "second": 1,
+   "second_ratio": 0.03,
+   "time": "17:55:31"
+  },
+  {
+   "ch": 14,
+   "plateau": 11.8,
+   "peak": 12.1,
+   "sec": 0.75,
+   "second": 20,
+   "second_ratio": 0.04,
+   "time": "17:55:35"
+  },
+  {
+   "ch": 15,
+   "plateau": 35.7,
+   "peak": 40.1,
+   "sec": 1.26,
+   "second": 1,
+   "second_ratio": 0.01,
+   "time": "17:55:39"
+  },
+  {
+   "ch": 13,
+   "plateau": 15.0,
+   "peak": 15.6,
+   "sec": 1.08,
+   "second": 1,
+   "second_ratio": 0.03,
+   "time": "17:55:44"
+  },
+  {
+   "ch": 18,
+   "plateau": 22.1,
+   "peak": 23.7,
+   "sec": 1.34,
+   "second": 1,
+   "second_ratio": 0.02,
+   "time": "17:55:48"
+  },
+  {
+   "ch": 12,
+   "plateau": 38.8,
+   "peak": 42.0,
+   "sec": 1.34,
+   "second": 1,
+   "second_ratio": 0.01,
+   "time": "17:55:51"
+  },
+  {
+   "ch": 11,
+   "plateau": 18.6,
+   "peak": 19.6,
+   "sec": 1.22,
+   "second": 20,
+   "second_ratio": 0.05,
+   "time": "17:56:06"
+  },
+  {
+   "ch": 23,
+   "plateau": 21.6,
+   "peak": 22.8,
+   "sec": 1.22,
+   "second": 20,
+   "second_ratio": 0.03,
+   "time": "17:56:10"
+  },
+  {
+   "ch": 10,
+   "plateau": 37.8,
+   "peak": 41.0,
+   "sec": 1.57,
+   "second": 1,
+   "second_ratio": 0.01,
+   "time": "17:56:13"
+  },
+  {
+   "ch": 22,
+   "plateau": 28.5,
+   "peak": 30.7,
+   "sec": 1.45,
+   "second": 1,
+   "second_ratio": 0.02,
+   "time": "17:56:20"
+  },
+  {
+   "ch": 8,
+   "plateau": 18.8,
+   "peak": 20.9,
+   "sec": 1.04,
+   "second": 1,
+   "second_ratio": 0.02,
+   "time": "17:56:24"
+  },
+  {
+   "ch": 6,
+   "plateau": 29.1,
+   "peak": 32.4,
+   "sec": 1.28,
+   "second": 20,
+   "second_ratio": 0.03,
+   "time": "17:56:28"
+  },
+  {
+   "ch": 7,
+   "plateau": 16.5,
+   "peak": 18.2,
+   "sec": 0.89,
+   "second": 3,
+   "second_ratio": 0.03,
+   "time": "17:56:33"
+  },
+  {
+   "ch": 5,
+   "plateau": 30.0,
+   "peak": 33.8,
+   "sec": 1.13,
+   "second": 3,
+   "second_ratio": 0.02,
+   "time": "17:56:36"
+  },
+  {
+   "ch": 3,
+   "plateau": 32.5,
+   "peak": 35.9,
+   "sec": 1.1,
+   "second": 1,
+   "second_ratio": 0.02,
+   "time": "17:56:38"
+  },
+  {
+   "ch": 4,
+   "plateau": 46.0,
+   "peak": 49.7,
+   "sec": 1.45,
+   "second": 1,
+   "second_ratio": 0.01,
+   "time": "17:56:41"
+  },
+  {
+   "ch": 20,
+   "plateau": 47.7,
+   "peak": 50.6,
+   "sec": 1.53,
+   "second": 1,
+   "second_ratio": 0.01,
+   "time": "17:56:44"
+  },
+  {
+   "ch": 1,
+   "plateau": 42.3,
+   "peak": 46.2,
+   "sec": 1.14,
+   "second": 13,
+   "second_ratio": 0.01,
+   "time": "17:56:48"
+  },
+  {
+   "ch": 0,
+   "plateau": 36.0,
+   "peak": 39.9,
+   "sec": 1.23,
+   "second": 20,
+   "second_ratio": 0.02,
+   "time": "17:56:51"
+  }
+ ]
+}
