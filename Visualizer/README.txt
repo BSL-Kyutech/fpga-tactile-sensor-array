@@ -45,3 +45,31 @@ pip install ezdxf
 python Visualizer/tools/extract_hand_layout.py hand_outer_shape_closed_footprint_v3.dxf
 
 This resets "channel" to a placeholder order and drops the gains.
+
+##Launcher and diagnostic tools (Visualizer/tools, Windows)
+
+viz.cmd / vizctl.ps1   start a viewer in its own cmd window after checking that packets arrive.
+                       Add Visualizer\tools to PATH (user environment variable), then in a NEW terminal:
+                       viz graph | viz hand | viz raw | viz calib | viz gain | viz check | viz stop | viz status
+                       (viz.cmd runs vizctl.ps1 with -ExecutionPolicy Bypass, so no policy change is needed.
+                        Python: VIZ_PYTHON env var, else per-user Python 3.13, else "python".)
+probe.py               find the board (FTDI 0403:6015) and count packets for 1.5 s, no plot.
+channel_check.py       step through S0..S23 one at a time while touching the hand.
+watch_channels.py      log which channels move while touching (finds dead / stuck / shorted channels).
+sim_heatmap.py         render hand_heatmap.py to a PNG with fake data (no board needed).
+shield_wiring.py       trace the shield PCB gerbers: JST pad -> header pin -> GPIO (needs shapely).
+
+##Hardware notes (Icepi Zero shield + hand sensor, found 2026-11-13..16)
+
+- Shield wiring (from icepizero_PCB_Files gerbers, shield_wiring.py):
+    JST  1..10 -> header 3, 5, 7, 11, 12, 13, 15, 16, 18, 22  = GPIO 2, 3, 4, 17, 18, 27, 22, 23, 24, 25
+    JST 11..20 -> header 26, 27, 28, 29, 31, 32, 33, 35, 36, 37 = GPIO 7, 0, 1, 5, 6, 12, 13, 19, 16, 26
+  24 x 10 MΩ sense resistors pull up to 5V (header 2/4); 4 of them (header 8, 10, 38, 40 =
+  GPIO 14, 15, 20, 21) have no JST pin.  The firmware sends all 24 (GPIO 0-27 minus SPI 8-11).
+- Channels not wired to the hand: S2, S16, S19, S21 (constant 1-6 counts).
+- S9 reads a constant 1200 and never responds (hand map: ring_tip, inferred).
+- 2026-11-16: S13 (index_tip) and S18 (index_mid) always respond together with the same value
+  and their idle counts dropped from ~70 to ~25 -> probably shorted to each other; check the flex
+  on the index finger and the JST connector.
+- The channel order S0..S23 is set by the flashed firmware's .lpf, which is not in this repo
+  (icepizero_code/icepi-zero.lpf and Makefile are empty; top.sv here is a 20-ch SPI version).
