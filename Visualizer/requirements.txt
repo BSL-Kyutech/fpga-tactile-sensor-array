@@ -1,0 +1,9 @@
+# viewers (icepizeroo.py, hand_heatmap.py, calibration tools)
+matplotlib
+pyserial
+numpy
+# screen recording in hand_heatmap.py
+imageio-ffmpeg
+# optional: tools/extract_hand_layout.py (ezdxf), tools/shield_wiring.py (shapely)
+# ezdxf
+# shapely

@@ -8,6 +8,7 @@ Auto-detects the COM port that is sending valid packets.
 import serial
 import serial.tools.list_ports
 import collections
+import os
 import sys
 import time
 import matplotlib.pyplot as plt
@@ -96,21 +97,27 @@ def find_active_port():
     """
     Search for a COM port that is actually transmitting the expected packets.
     Checks:
-      1. All ports reported by the OS
-      2. COM0 … COM100 (in case some are missing from the OS list)
+      0. $VIZ_PORT if set (e.g. COM9 or /dev/ttyUSB0)
+      1. Icepi Zero FTDI ports (VID:PID 0403:6015) first, then all other ports the OS reports
+      2. COM0 … COM100 on Windows (in case some are missing from the OS list)
     Returns the first matching port name or None.
     """
     candidates = []
+    if os.environ.get("VIZ_PORT"):
+        candidates.append(os.environ["VIZ_PORT"])
 
-    # 1) Ports the OS currently knows about
-    for info in serial.tools.list_ports.comports():
+    # 1) Ports the OS currently knows about, the Icepi Zero's FTDI chip first
+    ports = list(serial.tools.list_ports.comports())
+    ports.sort(key=lambda p: not (p.vid == 0x0403 and p.pid == 0x6015))
+    for info in ports:
         candidates.append(info.device)
 
-    # 2) Explicitly try COM0 … COM100 (Windows-style)
-    for i in range(0, 101):
-        name = f"COM{i}"
-        if name not in candidates:
-            candidates.append(name)
+    # 2) Explicitly try COM0 … COM100 (Windows only)
+    if os.name == "nt":
+        for i in range(0, 101):
+            name = f"COM{i}"
+            if name not in candidates:
+                candidates.append(name)
 
     # Remove duplicates while preserving order
     seen = set()

@@ -91,3 +91,18 @@ shield_wiring.py       trace the shield PCB gerbers: JST pad -> header pin -> GP
   on the index finger and the JST connector.
 - The channel order S0..S23 is set by the flashed firmware's .lpf, which is not in this repo
   (icepizero_code/icepi-zero.lpf and Makefile are empty; top.sv here is a 20-ch SPI version).
+
+##Linux (desktop with a display; tested on Ubuntu)
+
+git clone -b feature/hand-heatmap https://github.com/BSL-Kyutech/fpga-tactile-sensor-array.git
+cd fpga-tactile-sensor-array
+bash Visualizer/tools/setup_linux.sh      # apt python3-venv python3-tk, Visualizer/.venv, dialout group, ~/.local/bin/viz
+(log out and in once if you were just added to "dialout")
+
+viz help | viz status | viz hand | viz raw | viz nocal | viz zero | viz graph | viz stop | viz restart hand
+  - same targets as viz.cmd on Windows; the viewer runs in the background,
+    output in ~/.cache/tactile-viz/<target>.log
+  - the board shows up as /dev/ttyUSB* (FTDI 0403:6015) and is found automatically;
+    set VIZ_PORT=/dev/ttyUSB0 to force a port, VIZ_PYTHON to use another python
+  - without viz: Visualizer/.venv/bin/python Visualizer/hand_heatmap.py   (run from the repo root)
+  - no board at hand: Visualizer/.venv/bin/python Visualizer/tools/sim_heatmap.py out.png
