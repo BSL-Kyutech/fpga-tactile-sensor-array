@@ -14,10 +14,29 @@ multiplied by it so that equal force shows as an equal value ("g" toggles it).
 
 Start options:
   python Visualizer/hand_heatmap.py          gains applied (if hand_layout.json has them)
-  python Visualizer/hand_heatmap.py --raw    sensor values as they are (no gains)
+  python Visualizer/hand_heatmap.py --raw    no force-scale gains (zero calibration still applied)
+  python Visualizer/hand_heatmap.py --nocal  no calibration at all: no gains, no zero calibration
   --vmax N                                   colour scale maximum at start (default 100)
+  --outdir DIR                               where recordings go (default ~/Videos/hand_heatmap)
+  --zero                                     run the zero calibration right after start
+  --smooth A                                 low-pass filter strength at start (0.02-1, default 0.3)
+
+Low-pass filter: packets arriving during one frame (~30 ms) are averaged, then an
+exponential moving average with weight A per frame is applied (A = 1: no extra smoothing,
+smaller A: smoother but slower).  Change it with the slider at the bottom or "[" / "]".
+
+Zero calibration (ZERO button or "z", hands off for 3 s): measures how much each channel
+moves while nobody touches it and stores that noise floor in hand_layout.json; it is
+subtracted from the display, so the untouched hand shows 0 everywhere.
+
+Recording (to sync with a camera later): the REC button or "r" starts / stops a
+screen recording of this window (MP4, constant 30 fps = wall-clock time) plus a CSV of
+every packet and a JSON with the exact start / stop times; see recorder.py.
 
 Keys (on the plot window):
+  r      start / stop recording
+  z      zero calibration (hands off for 3 s)
+  [ / ]  stronger / weaker low-pass filter
   g      toggle force-scale gains (from hand_gain_calibrate.py)
   a      toggle area normalisation (counts / cm²  <->  counts)
   b      re-capture baseline (keep hands off)
@@ -27,18 +46,24 @@ Keys (on the plot window):
 
 import argparse
 import json
+import math
 import os
+import shutil
 import sys
+import time
+from datetime import datetime
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon
+from matplotlib.widgets import Button, Slider
 import matplotlib.patheffects as pe
 import serial
 
-from icepizeroo import (BAUD, BASELINE_SAMPLES, NUM_SENSORS,
+from icepizeroo import (BAUD, NUM_SENSORS,
                         find_active_port, find_packet, parse_packet)
+from recorder import FigureRecorder
 
 LAYOUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand_layout.json")
 VMAX_START = {True: 50, False: 100}   # full colour: counts/cm² (normalised) or counts
@@ -46,18 +71,28 @@ VMAX_STEPS = [5, 10, 25, 50, 100, 200, 300, 500, 1000, 2000, 5000]
 NORMALISE_START = False
 USE_GAIN_START = True    # only if hand_layout.json has gains
 TOUCH_THRESHOLD = 15    # same as icepizeroo.py
-SMOOTHING = 0.3         # EMA weight of each new frame (1.0 = no smoothing)
+BASELINE_PACKETS = 600  # ~0.5 s at ~1200 packets/s
+ZERO_SEC = 3.0          # length of the zero calibration
+SMOOTHING = 0.3         # default EMA weight of each new frame (1.0 = no smoothing)
+SMOOTH_STEPS = [0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
 CMAP = "inferno_r"
 
 # free "l" from matplotlib's default shortcut (toggle log y-scale)
 plt.rcParams["keymap.yscale"] = []
 plt.rcParams["keymap.grid"] = []      # free "g" (toggle grid)
+plt.rcParams["keymap.home"] = ["h", "home"]   # free "r" (record)
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Hand taxel heatmap")
     ap.add_argument("--raw", action="store_true", help="show sensor values without gains")
     ap.add_argument("--vmax", type=float, help="colour scale maximum at start")
+    ap.add_argument("--outdir", help="folder for recordings (default ~/Videos/hand_heatmap)")
+    ap.add_argument("--zero", action="store_true", help="run the zero calibration after start")
+    ap.add_argument("--smooth", type=float, default=SMOOTHING,
+                    help="low-pass filter: EMA weight per frame, 0.02-1 (1 = off, default 0.3)")
+    ap.add_argument("--nocal", action="store_true",
+                    help="ignore the stored calibration (no gains, no zero calibration)")
     args = ap.parse_args()
 
     with open(LAYOUT_FILE) as f:
@@ -71,6 +106,8 @@ if __name__ == "__main__":
     print(f"Using {PORT} @ {BAUD}")
     try:
         ser = serial.Serial(PORT, BAUD, timeout=0.05)
+        if hasattr(ser, "set_buffer_size"):          # Windows: default 4 KB drops packets when drawing is slow
+            ser.set_buffer_size(rx_size=1 << 20)
         ser.reset_input_buffer()
     except serial.SerialException as e:
         print(f"ERROR: {e}")
@@ -81,10 +118,13 @@ if __name__ == "__main__":
     baseline_ready = False
     baseline_acc = [0] * NUM_SENSORS
     baseline_cnt = 0
-    shown = [0.0] * NUM_SENSORS     # smoothed, baseline-corrected values
+    shown = [0.0] * NUM_SENSORS     # smoothed (value - baseline), may be negative
+    noise_floor = (None if args.nocal else layout.get("noise_floor")) or [0.0] * NUM_SENSORS
+    zero = {"active": False, "pending": args.zero, "t0": 0.0, "frames": []}
+    lpf = {"alpha": min(1.0, max(0.02, args.smooth)), "dt": 0.03, "t_last": None}
     normalise = NORMALISE_START
     has_gain = any(t.get("gain") is not None for t in taxels)
-    use_gain = USE_GAIN_START and has_gain and not args.raw
+    use_gain = USE_GAIN_START and has_gain and not (args.raw or args.nocal)
     vmax = dict(VMAX_START)         # separate scale for each mode
     if args.vmax:
         vmax[normalise] = args.vmax
@@ -98,6 +138,7 @@ if __name__ == "__main__":
 
     # ── plot setup ──
     fig, ax = plt.subplots(figsize=(11, 8))
+    fig.subplots_adjust(bottom=0.1)
     fig.canvas.manager.set_window_title("Hand Heatmap")
     ax.set_aspect("equal")
     ax.axis("off")
@@ -132,7 +173,7 @@ if __name__ == "__main__":
 
     def apply_mode():
         coll.set_clim(0, vmax[normalise])
-        g = " × gain" if use_gain else ""
+        g = (" × gain" if use_gain else "") + ("  [no calibration]" if args.nocal and not use_gain else "")
         if normalise:
             ax.set_title(f"Icepi Zero – hand taxels (count − baseline){g} / area")
             cbar.set_label(f"(count − baseline){g} / cm²")
@@ -159,14 +200,98 @@ if __name__ == "__main__":
                           fontsize=9, family="monospace",
                           bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8))
 
+    # ── zero calibration ──
+    def start_zero(_=None):
+        if baseline_ready:
+            zero.update(active=True, pending=False, t0=time.time(), frames=[])
+            print("Zero calibration - keep hands off for", ZERO_SEC, "s")
+        else:
+            zero["pending"] = True
+
+    def finish_zero():
+        global noise_floor
+        frames = zero["frames"]
+        zero["active"] = False
+        if len(frames) < 10:
+            print("Zero calibration: not enough data")
+            return
+        mean = [sum(f[i] for f in frames) / len(frames) for i in range(NUM_SENSORS)]
+        floor = []
+        for i in range(NUM_SENSORS):
+            ema, worst = 0.0, 0.0      # replay the display smoothing on the centred data
+            for f in frames:
+                ema += lpf["alpha"] * ((f[i] - mean[i]) - ema)
+                worst = max(worst, abs(ema))
+            floor.append(round(1.5 * worst + 0.5, 2))
+        for i in range(NUM_SENSORS):
+            baseline[i] += mean[i]
+            shown[i] = 0.0
+        noise_floor = floor
+        layout["noise_floor"] = floor
+        layout["noise_floor_note"] = (
+            "per-channel counts subtracted from (value - baseline) so the untouched hand shows 0; "
+            f"measured with hand_heatmap.py zero calibration ({ZERO_SEC:.0f} s) on {time.strftime('%Y-%m-%d %H:%M')}.")
+        shutil.copyfile(LAYOUT_FILE, LAYOUT_FILE + ".bak")
+        with open(LAYOUT_FILE, "w") as f:
+            json.dump(layout, f, separators=(",", ":"))
+        print("Zero calibration saved, noise floor:", {f"S{i}": v for i, v in enumerate(floor)})
+
+    zero_button = Button(fig.add_axes([0.13, 0.94, 0.11, 0.045]), "ZERO", color="0.9", hovercolor="0.8")
+    zero_button.on_clicked(start_zero)
+
+    # ── low-pass filter control ──
+    smooth_slider = Slider(fig.add_axes([0.3, 0.025, 0.4, 0.03]), "low-pass α",
+                           0.02, 1.0, valinit=lpf["alpha"], valstep=0.01)
+
+    def set_alpha(v):
+        lpf["alpha"] = float(v)
+
+    smooth_slider.on_changed(set_alpha)
+
+    def lpf_text():
+        a = lpf["alpha"]
+        if a >= 1.0:
+            return f"low-pass: off (frame average only, ~{lpf['dt'] * 1000:.0f} ms)"
+        tau = -lpf["dt"] / math.log(1.0 - a)
+        return f"low-pass α={a:.2f}  τ≈{tau * 1000:.0f} ms, 90% in ≈{tau * 2.3 * 1000:.0f} ms  ([ / ] or slider)"
+
+    # ── recording ──
+    rec = FigureRecorder(fig, args.outdir, num_sensors=NUM_SENSORS)
+    rec_button = Button(fig.add_axes([0.01, 0.94, 0.11, 0.045]), "● REC", color="0.9", hovercolor="0.8")
+    rec_text = fig.text(0.99, 0.965, "", ha="right", va="center", fontsize=12,
+                        family="monospace", color="red", weight="bold")
+
+    def toggle_recording(_=None):
+        saved = rec.toggle(baseline=list(baseline) if baseline_ready else None)
+        rec_button.label.set_text("■ STOP" if rec.active else "● REC")
+        rec_button.color = "#ffb3b3" if rec.active else "0.9"
+        if saved:
+            print("Saved", saved)
+        fig.canvas.draw_idle()
+
+    rec_button.on_clicked(toggle_recording)
+
     capture_baseline()
 
     def update(_frame):
         global buf, baseline_ready, baseline_acc, baseline_cnt, baseline
 
         data = ser.read(ser.in_waiting or 1)
+        t_read = time.time()
         if data:
             buf.extend(data)
+
+        if rec.active:
+            e = rec.elapsed()
+            rec_text.set_text(f"● REC {int(e // 60):02d}:{e % 60:06.3f}   "
+                              f"{datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+        else:
+            rec_text.set_text("")
+
+        now = time.time()
+        if lpf["t_last"] is not None:
+            lpf["dt"] += 0.05 * ((now - lpf["t_last"]) - lpf["dt"])   # measured frame interval
+        lpf["t_last"] = now
 
         acc = [0] * NUM_SENSORS
         n = 0
@@ -175,37 +300,51 @@ if __name__ == "__main__":
             if pkt is None:
                 break
             raw_vals = [v for _, v in parse_packet(pkt)]
+            rec.log_packet(raw_vals, t_read)
             if not baseline_ready:
                 for i, v in enumerate(raw_vals):
                     baseline_acc[i] += v
                 baseline_cnt += 1
-                if baseline_cnt >= BASELINE_SAMPLES:
+                if baseline_cnt >= BASELINE_PACKETS:
                     for i in range(NUM_SENSORS):
-                        baseline[i] = baseline_acc[i] // baseline_cnt
+                        baseline[i] = baseline_acc[i] / baseline_cnt
                     baseline_ready = True
-                    print("Baseline captured:", baseline)
+                    print("Baseline captured:", [round(b) for b in baseline])
                 continue
             for i, v in enumerate(raw_vals):
-                acc[i] += max(0, v - baseline[i])
+                acc[i] += v - baseline[i]      # average first, clip later (no noise bias)
             n += 1
 
         if not baseline_ready:
-            status_text.set_text(f"Capturing baseline… {baseline_cnt}/{BASELINE_SAMPLES}")
+            status_text.set_text(f"Capturing baseline… {baseline_cnt}/{BASELINE_PACKETS} - hands off")
             return [coll, status_text]
+        if zero["pending"]:
+            start_zero()
         if n:
             for i in range(NUM_SENSORS):
-                shown[i] += SMOOTHING * (acc[i] / n - shown[i])
+                shown[i] += lpf["alpha"] * (acc[i] / n - shown[i])
+            if zero["active"]:
+                zero["frames"].append([a / n for a in acc])
+        if zero["active"]:
+            left = ZERO_SEC - (time.time() - zero["t0"])
+            if left <= 0:
+                finish_zero()
+            else:
+                status_text.set_text(f"Zero calibration… keep hands off  {left:3.1f} s")
+                return [coll, status_text]
 
-        vals = [shown[c] * (g if use_gain else 1.0) / (a if normalise else 1.0)
+        level = [max(0.0, shown[i] - noise_floor[i]) for i in range(NUM_SENSORS)]
+        vals = [level[c] * (g if use_gain else 1.0) / (a if normalise else 1.0)
                 for c, a, g in zip(patch_channel, patch_area, patch_gain)]
         coll.set_array(vals)
         k = max(range(len(vals)), key=lambda j: vals[j])
         unit = "/cm²" if normalise else ""
         lines = [f"max: S{patch_channel[k]} = {vals[k]:6.0f}{unit}   scale 0–{vmax[normalise]}{unit}"
-                 "  (+/- scale, g = gain, a = area norm, b = baseline)"]
+                 "  (+/- scale, g = gain, a = area norm, b = baseline, z = zero)",
+                 lpf_text()]
         if unmapped:
             lines.append("not on hand: " + " ".join(
-                f"S{c}={shown[c]:.0f}" + ("*" if shown[c] > TOUCH_THRESHOLD else "") for c in unmapped))
+                f"S{c}={level[c]:.0f}" + ("*" if level[c] > TOUCH_THRESHOLD else "") for c in unmapped))
         status_text.set_text("\n".join(lines))
         return [coll, status_text]
 
@@ -213,6 +352,17 @@ if __name__ == "__main__":
         global normalise, use_gain
         if event.key == "b":
             capture_baseline()
+        elif event.key == "r":
+            toggle_recording()
+        elif event.key == "z":
+            start_zero()
+        elif event.key in ("[", "]"):
+            a = lpf["alpha"]
+            if event.key == "[":
+                a = max([x for x in SMOOTH_STEPS if x < a - 1e-6], default=SMOOTH_STEPS[0])
+            else:
+                a = min([x for x in SMOOTH_STEPS if x > a + 1e-6], default=SMOOTH_STEPS[-1])
+            smooth_slider.set_val(a)
         elif event.key == "g" and has_gain:
             use_gain = not use_gain
             apply_mode()
@@ -238,5 +388,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     finally:
+        rec.stop()
         ser.close()
         print("Closed.")

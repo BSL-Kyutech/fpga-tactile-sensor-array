@@ -2,14 +2,14 @@
 #   powershell -ExecutionPolicy Bypass -File vizctl.ps1 start|stop|restart|status|shot [graph|hand|handraw|calib|gain|check]
 # Python: $env:VIZ_PYTHON if set, else the per-user Python 3.13 from winget, else "python" on PATH.
 param([ValidateSet('start','stop','restart','status','shot')][string]$Action = 'status',
-      [ValidateSet('graph','hand','handraw','check','calib','gain')][string]$Target = 'graph')
+      [ValidateSet('graph','hand','handraw','nocal','zero','check','calib','gain')][string]$Target = 'graph')
 $Repo   = (Resolve-Path "$PSScriptRoot\..\..").Path
 $Python = if ($env:VIZ_PYTHON) { $env:VIZ_PYTHON }
           elseif (Test-Path "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe") { "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" }
           else { 'python' }
 $Probe  = "$PSScriptRoot\probe.py"
-$Script = @{ graph = 'Visualizer\icepizeroo.py'; hand = 'Visualizer\hand_heatmap.py'; handraw = 'Visualizer\hand_heatmap.py --raw'; calib = 'Visualizer\hand_calibrate.py'; gain = 'Visualizer\hand_gain_calibrate.py'; check = 'Visualizer\tools\channel_check.py' }[$Target]
-$Title  = @{ graph = 'Figure 1'; hand = 'Hand Heatmap'; handraw = 'Hand Heatmap'; calib = 'Hand Calibration'; gain = 'Gain Calibration'; check = 'Channel Check' }[$Target]
+$Script = @{ graph = 'Visualizer\icepizeroo.py'; hand = 'Visualizer\hand_heatmap.py'; handraw = 'Visualizer\hand_heatmap.py --raw'; zero = 'Visualizer\hand_heatmap.py --zero'; nocal = 'Visualizer\hand_heatmap.py --nocal'; calib = 'Visualizer\hand_calibrate.py'; gain = 'Visualizer\hand_gain_calibrate.py'; check = 'Visualizer\tools\channel_check.py' }[$Target]
+$Title  = @{ graph = 'Figure 1'; hand = 'Hand Heatmap'; handraw = 'Hand Heatmap'; zero = 'Hand Heatmap'; nocal = 'Hand Heatmap'; calib = 'Hand Calibration'; gain = 'Gain Calibration'; check = 'Channel Check' }[$Target]
 $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 

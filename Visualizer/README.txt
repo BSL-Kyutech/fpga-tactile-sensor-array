@@ -8,14 +8,32 @@ pip install pyserial
 
 ##Hand heatmap (hand_heatmap.py)
 
-python Visualizer/hand_heatmap.py          (force-scale gains applied)
-python Visualizer/hand_heatmap.py --raw    (sensor values as they are)
-python Visualizer/hand_heatmap.py --vmax 200
+python Visualizer/hand_heatmap.py            (gains + zero calibration applied)
+python Visualizer/hand_heatmap.py --raw      (no force-scale gains, zero calibration kept)
+python Visualizer/hand_heatmap.py --nocal    (no calibration at all)
+python Visualizer/hand_heatmap.py --zero     (run the zero calibration right after start)
+python Visualizer/hand_heatmap.py --vmax 200 --smooth 0.7 --outdir DIR
 
 Shows the 20 hand taxels as colours on the hand outline (same serial format,
 port auto-detection and baseline as icepizeroo.py; keep hands off at start).
-Keys: g = gains on/off, a = divide by taxel area, + / - = colour scale (default 0-100),
-b = re-baseline, l = toggle channel labels.
+Keys: r = start/stop recording, z = zero calibration, g = gains on/off,
+a = divide by taxel area, + / - = colour scale (default 0-100), [ / ] = low-pass filter,
+b = re-baseline, l = toggle channel labels.  Buttons: REC, ZERO; slider: low-pass α.
+
+Zero calibration (ZERO / z, hands off 3 s): stores a per-channel noise floor in
+hand_layout.json ("noise_floor") that is subtracted, so the untouched hand shows 0.
+Needed e.g. with the conductive silicone cover, which makes large pads noisier.
+
+Low-pass filter: packets of one frame (~30 ms) are averaged, then an exponential moving
+average with weight α per frame (α = 1: no extra smoothing).  The status box shows α and
+the resulting time constant.
+
+Recording (REC / r): writes to ~/Videos/hand_heatmap (or --outdir)
+  hand_YYYYMMDD_HHMMSS.mp4         the window at a constant 30 fps (= wall-clock time)
+  hand_YYYYMMDD_HHMMSS_sensor.csv  every packet: unix time, raw S0..S23
+  hand_YYYYMMDD_HHMMSS.json        exact start/stop time (ms), frames, baseline
+Frame k of the video shows the screen at start_unix + k/30 s, for syncing with a camera.
+Needs: pip install imageio-ffmpeg (bundles ffmpeg).
 
 hand_layout.json holds the taxel shapes, the taxel -> channel (S0..S23) mapping and
 the per-taxel gains.  The 24 values in a packet include 4 channels that are not wired
